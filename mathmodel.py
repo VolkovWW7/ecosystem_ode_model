@@ -2,6 +2,9 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import json
 
 # --- МАТЕМАТИЧЕСКАЯ МОДЕЛЬ ---
 
@@ -38,55 +41,54 @@ def get_default_params():
     
     return p
 
+def update_dependent_params(p):
+    """Пересчитывает зависимые коэффициенты на основе базовых."""
+    p['bXCh'] = 1.0 - p['bXP'] - p['bXF']
+    p['bYCh'] = 1.0 - p['bYP'] - p['bYF']
+    p['gXC'] = p['bXP']*p['gPC'] + p['bXF']*p['gFC'] + p['bXCh']*p['gChC']
+    p['gXN'] = p['bXP']*p['gPN']
+    p['gYC'] = p['bYP']*p['gPC'] + p['bYF']*p['gFC'] + p['bYCh']*p['gChC']
+    p['gYN'] = p['bYP']*p['gPN']
+    return p
+
 def sys(t, x, p):
     X, Y, Dcl, Dps, P, F, Ch, Ac = x
 
-    # Расчет ресурсов с защитой от отрицательных значений
     C = max(1e-9, p['C0'] - (p['gXC']*(X + Dcl) + p['gYC']*(Y + Dps) + p['gPC']*P + p['gFC']*F + p['gChC']*Ch))
     N = max(1e-9, p['N0'] - (p['gXN']*(X + Dcl) + p['gYN']*(Y + Dps) + p['gPN']*P))
 
-    # Вспомогательные функции
     Ph_c = p['Vx_c'] * C * N / ((p['Kc'] + C) * (p['Kn'] + N + p['Ki'] * N**4))
     mX_c = p['Mxx'] * (1 + C*N + p['Ki'] * N**4) / (1 + p['Ax'] * C * N)
-    
-    # АТФ функции
+
     v_atp = Ac * (2*(1 - Ac) - 0.1) / ((1 - Ac) + 0.1)
     atp_val = max(0.0, v_atp)
-    
+
     f_c = p['Vy_c'] * P * F * Ch / ((p['Kpp'] + P) * (p['Kfc'] + F) * (p['Kfc'] + Ch)) * Ac / (p['Ka'] + Ac)
-    
+
     gP_c = p['Vm'] * P / (p['Kp'] + P)
     gF_c = p['Vm'] * F / (p['Kf'] + F)
     gCh_c = p['Vm'] * Ch / (p['Kch'] + Ch)
     mY_c = p['Myy'] * (0.01 + Ac) / (0.01 + p['Ay'] * Ac)
 
-    # Дифференциальные уравнения
-    dx = [0.0] * 8
+    dx = [0.0]*8
     dx[0] = (Ph_c - mX_c) * X
     dx[1] = (f_c - mY_c) * Y
     dx[2] = mX_c * X - p['k_d1'] * Dcl
     dx[3] = mY_c * Y - p['k_d2'] * Dps
-    dx[4] = (p['bXP'] * p['k_d1'] * Dcl + p['bYP'] * p['k_d2'] * Dps - (p['bYP'] * f_c + p['aP'] * gP_c * atp_val) * Y)
-    dx[5] = (p['bXF'] * p['k_d1'] * Dcl + p['bYF'] * p['k_d2'] * Dps - (p['bYF'] * f_c + p['aF'] * gF_c * atp_val) * Y)
-    dx[6] = (p['bXCh'] * p['k_d1'] * Dcl + p['bYCh'] * p['k_d2'] * Dps - (p['bYCh'] * f_c + p['aCh'] * gCh_c * atp_val) * Y)
-    dx[7] = 10 * (5 * atp_val * (p['aP'] * gP_c + p['aF'] * gF_c + p['aCh'] * gCh_c) * Y / (0.0001 + Y) - f_c - p['k_d'] * Ac / (p['eps2'] + Ac))
-
+    dx[4] = (p['bXP']*p['k_d1']*Dcl + p['bYP']*p['k_d2']*Dps - (p['bYP']*f_c + p['aP']*gP_c*atp_val)*Y)
+    dx[5] = (p['bXF']*p['k_d1']*Dcl + p['bYF']*p['k_d2']*Dps - (p['bYF']*f_c + p['aF']*gF_c*atp_val)*Y)
+    dx[6] = (p['bXCh']*p['k_d1']*Dcl + p['bYCh']*p['k_d2']*Dps - (p['bYCh']*f_c + p['aCh']*gCh_c*atp_val)*Y)
+    dx[7] = 10 * (5*atp_val*(p['aP']*gP_c + p['aF']*gF_c + p['aCh']*gCh_c)*Y/(0.0001+Y) - f_c - p['k_d']*Ac/(p['eps2']+Ac))
     return dx
 
-def run_simulation(p):
-    """Запуск решения системы ОДУ."""
-    # Автоматическая инициализация P, F, Ch на основе детрита как в PDF
+def run_simulation(p,method):
     p0_val = (p['Dcl0'] + p['Dps0']) / 6
     x0 = [p['X0'], p['Y0'], p['Dcl0'], p['Dps0'], p0_val, p0_val, p0_val, p['Ac0']]
-    
     t_span = (0, p['total_time'])
     t_eval = np.arange(0, p['total_time'] + p['output_step'], p['output_step'])
-    
-    return solve_ivp(sys, t_span, x0, args=(p,), method='RK23', t_eval=t_eval)
+    return solve_ivp(sys, t_span, x0, args=(p,), method=method, t_eval=t_eval)
 
-
-# --- ФУНКЦИИ ГРАФИКОВ ДЛЯ PYSIDE ---
-
+# --- ФУНКЦИИ ГРАФИКОВ ---
 def _setup_ax(ax, title, xlabel='Время', ylabel='Концентрация'):
     ax.set_title(title)
     ax.set_xlabel(xlabel)
@@ -95,7 +97,7 @@ def _setup_ax(ax, title, xlabel='Время', ylabel='Концентрация')
     ax.legend()
 
 def graph_Trofs(sol):
-    fig = Figure(figsize=(8, 5))
+    fig = Figure(figsize=(8,5))
     ax = fig.add_subplot(111)
     ax.plot(sol.t, sol.y[0], 'g-', lw=2, label='Автотрофы (X)')
     ax.plot(sol.t, sol.y[1], 'r-', lw=2, label='Гетеротрофы (Y)')
@@ -103,7 +105,7 @@ def graph_Trofs(sol):
     return fig
 
 def graph_Detrit(sol):
-    fig = Figure(figsize=(8, 5))
+    fig = Figure(figsize=(8,5))
     ax = fig.add_subplot(111)
     ax.plot(sol.t, sol.y[2], 'b-', label='Детрит хлореллы')
     ax.plot(sol.t, sol.y[3], 'm-', label='Детрит бактерий')
@@ -111,7 +113,7 @@ def graph_Detrit(sol):
     return fig
 
 def graph_PFC(sol):
-    fig = Figure(figsize=(8, 5))
+    fig = Figure(figsize=(8,5))
     ax = fig.add_subplot(111)
     ax.plot(sol.t, sol.y[4], label='Белки (P)')
     ax.plot(sol.t, sol.y[5], label='Жиры (F)')
@@ -120,9 +122,30 @@ def graph_PFC(sol):
     return fig
 
 def graph_Ac(sol):
-    fig = Figure(figsize=(8, 5))
+    fig = Figure(figsize=(8,5))
     ax = fig.add_subplot(111)
     ax.plot(sol.t, sol.y[7], 'k-', label='АТФ (Ac)')
     _setup_ax(ax, 'Внутриклеточная концентрация АТФ')
     return fig
 
+# --- ФУНКЦИИ ДЛЯ РАБОТЫ С JSON И ОТЧЁТАМИ ---
+def save_params_to_json(params, filepath):
+    to_save = {k: v for k, v in params.items() 
+               if k not in ['bXCh', 'bYCh', 'gXC', 'gXN', 'gYC', 'gYN']}
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(to_save, f, indent=2, ensure_ascii=False)
+
+def load_params_from_json(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        loaded = json.load(f)
+    params = get_default_params()
+    params.update(loaded)
+    params = update_dependent_params(params)
+    return params
+
+def save_report_pdf(solution, pdf_path):
+    with PdfPages(pdf_path) as pdf:
+        fig1 = graph_Trofs(solution); pdf.savefig(fig1); plt.close(fig1)
+        fig2 = graph_Detrit(solution); pdf.savefig(fig2); plt.close(fig2)
+        fig3 = graph_PFC(solution); pdf.savefig(fig3); plt.close(fig3)
+        fig4 = graph_Ac(solution); pdf.savefig(fig4); plt.close(fig4)
