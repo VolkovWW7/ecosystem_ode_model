@@ -138,10 +138,36 @@ class BioOxWindow(QMainWindow):
         layout = QFormLayout()
         for key, label, default in params:
             spin = QDoubleSpinBox()
-            spin.setRange(0, 1000000)
             spin.setDecimals(5)
             spin.setSingleStep(0.01)
             spin.setValue(default)
+
+            # --- Ограничения на ввод (физические границы) ---
+            # Начальные концентрации (мг/мл)
+            if key in ('X0', 'Y0', 'Dcl0', 'Dps0', 'Ac0', 'C0', 'N0'):
+                spin.setRange(0.0, 10.0)
+            # Максимальные скорости роста
+            elif key in ('Vx_c', 'Vy_c', 'Vm'):
+                spin.setRange(0.0, 50.0)
+            # Константы полунасыщения, скорости распада
+            elif key in ('Kc', 'Kn', 'Kpp', 'Kfc', 'Ka', 'k_d1', 'k_d2', 'k_d'):
+                spin.setRange(0.0, 5.0)
+            # Коэффициенты смертности, адаптации, энерг. барьер
+            elif key in ('Mxx', 'Myy', 'Ax', 'Ay', 'eps2'):
+                spin.setRange(0.0, 10.0)
+            # Доли компонентов биомассы (0..1)
+            elif key in ('bXP', 'bXF', 'bYP', 'bYF'):
+                spin.setRange(0.0, 1.0)
+            # Коэффициент ингибирования
+            elif key == 'Ki':
+                spin.setRange(0.0, 1.0)
+            # Параметры времени (могут быть большими)
+            elif key in ('total_time', 'output_step'):
+                spin.setRange(0.0, 1e6)
+            else:
+                # для любых других параметров (запас)
+                spin.setRange(0.0, 1e6)
+
             layout.addRow(label, spin)
             self.params_widgets[key] = spin
         group.setLayout(layout)
