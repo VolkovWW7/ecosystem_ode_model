@@ -1,6 +1,5 @@
-тест1.json
-тест2.csv
-тест2.json
+*.csv
+*.json
 file1
 __pycache__
 тест2.pdf

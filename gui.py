@@ -139,7 +139,7 @@ class BioOxWindow(QMainWindow):
         for key, label, default in params:
             spin = QDoubleSpinBox()
             spin.setDecimals(5)
-            spin.setSingleStep(0.01)
+            spin.setSingleStep(0.0001)
             spin.setValue(default)
 
             # --- Ограничения на ввод (физические границы) ---

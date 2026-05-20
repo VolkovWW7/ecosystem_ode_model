@@ -33,7 +33,7 @@ def get_default_params():
         'C0': 0.11, 'N0': 0.15,
         'X0': 0.0024, 'Y0': 0.00025, 'Dcl0': 0.04, 'Dps0': 0.04, 'Ac0': 0.9,
         # Время
-        'total_time': 10000.0, 'output_step': 10.0
+        'total_time': 20000.0, 'output_step': 10.0
     }
     
     # Производные коэффициенты
