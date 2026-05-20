@@ -3,4 +3,4 @@
 file1
 __pycache__
 тест2.pdf
-.vscode/launch.json
+.venv/
