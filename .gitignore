@@ -2,5 +2,5 @@
 *.json
 file1
 __pycache__
-тест2.pdf
+*.pdf
 .venv/
