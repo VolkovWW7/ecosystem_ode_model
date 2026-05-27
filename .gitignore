@@ -3,3 +3,5 @@ calibrated_params_advanced.json
 __pycache__
 *.pdf
 .venv/
+*.spec
+
