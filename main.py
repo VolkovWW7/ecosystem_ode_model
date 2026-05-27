@@ -1,19 +1,110 @@
 import sys
+import os
 from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog
+from PySide6.QtCore import QThread, Signal, Slot
 import numpy as np
 import mathmodel
 from gui import BioOxWindow
+import calibrate_gui
+
+# Класс для перенаправления sys.stdout в Qt Signal
+class LogRedirector:
+    def __init__(self, signal):
+        self.signal = signal
+
+    def write(self, text):
+        if text.strip(): # Игнорируем пустые переносы строк для красоты
+            self.signal.emit(text)
+
+    def flush(self):
+        pass
+
+# Поток для фонового выполнения калибровки
+class CalibrationWorker(QThread):
+    log_signal = Signal(str)
+    finished_signal = Signal(bool, str)  # <-- Поменяли тут
+
+    def run(self):
+        old_stdout = sys.stdout
+        sys.stdout = LogRedirector(self.log_signal)
+        
+        try:
+            # Вызов функции теперь возвращает имя файла (или None)
+            saved_file = calibrate_gui.run_calibration_gui()
+            
+            if saved_file:
+                self.finished_signal.emit(True, saved_file)
+            else:
+                self.finished_signal.emit(False, "")
+        except Exception as e:
+            print(f"Ошибка в ходе калибровки: {str(e)}")
+            self.finished_signal.emit(False, "")
+        finally:
+            sys.stdout = old_stdout
+
 
 class BioOxController:
     def __init__(self):
         self.window = BioOxWindow()
         self.last_solution = None
+        self.calibration_thread = None # Ссылка на поток каллибровки
 
         # Подключение сигналов
         self.window.btn_run.clicked.connect(self.run_calculation)
         self.window.btn_import.clicked.connect(self.window.import_params)
         self.window.btn_export.clicked.connect(self.window.export_params)
         self.window.btn_report.clicked.connect(self.create_report)
+
+        # === ПОДКЛЮЧЕНИЕ СИГНАЛА КАЛИБРОВКИ ===
+        self.window.btn_start_calibrate.clicked.connect(self.start_calibration)
+
+    #функция "поиск решения"
+    def start_calibration(self):
+        # Проверяем, не запущен ли расчёт уже сейчас
+        if self.calibration_thread and self.calibration_thread.isRunning():
+            QMessageBox.warning(self.window, "Внимание", "Калибровка уже выполняется!")
+            return
+
+        # Очищаем старое окно логов перед новым запуском
+        self.window.txt_calibrate_log.clear()
+        self.window.btn_start_calibrate.setEnabled(False)
+        self.window.btn_start_calibrate.setText("Идёт калибровка...")
+
+        # Создаем и настраиваем рабочий поток
+        self.calibration_thread = CalibrationWorker()
+        self.calibration_thread.log_signal.connect(self.append_log)
+        self.calibration_thread.finished_signal.connect(self.calibration_finished)
+        
+        # Запуск потока (вызовет метод run() в фоне)
+        self.calibration_thread.start()
+
+    @Slot(str)
+    def append_log(self, text):
+        # Метод безопасно добавляет текст в QTextEdit из фонового потока
+        self.window.txt_calibrate_log.append(text)
+
+    @Slot(bool, str)  # <-- Принимает два аргумента
+    def calibration_finished(self, success, filename):
+        self.window.btn_start_calibrate.setEnabled(True)
+        self.window.btn_start_calibrate.setText("Запустить калибровку")
+        
+        if success:
+            QMessageBox.information(
+                self.window, 
+                "Успех", 
+                f"Калибровка успешно завершена!\n\nРезультаты сохранены в файл:\n{filename}"
+            )
+            
+            # АВТОЗАГРУЗКА: Раз уж мы знаем точное имя файла, 
+            # мы можем автоматически применить новые параметры в интерфейс!
+            if filename and os.path.exists(filename):
+                new_params = mathmodel.load_params_from_json(filename)
+                # Отбираем только те параметры, которые есть в виджетах GUI
+                gui_params = {k: new_params[k] for k in self.window.params_widgets.keys() if k in new_params}
+                self.window.set_parameters(gui_params)
+                self.window.txt_calibrate_log.append(f"\n[Система]: Новые калиброванные параметры автоматически загружены в поля ввода.")
+        else:
+            QMessageBox.critical(self.window, "Ошибка", "В процессе оптимизации произошла ошибка.")
 
     def run_calculation(self):
         try:
@@ -83,3 +174,4 @@ if __name__ == "__main__":
     controller = BioOxController()
     controller.window.show()
     sys.exit(app.exec())
+ 

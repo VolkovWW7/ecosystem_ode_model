@@ -1,6 +1,5 @@
 *.csv
-*.json
-file1
+calibrated_params_advanced.json
 __pycache__
 *.pdf
 .venv/

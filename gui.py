@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QScrollArea, QGroupBox, QFormLayout, 
                              QDoubleSpinBox, QFrame, QFileDialog, QMessageBox,
-                             QTabWidget) 
+                             QTabWidget, QTextEdit) 
 from PySide6.QtCore import Qt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import mathmodel
@@ -117,10 +117,29 @@ class BioOxWindow(QMainWindow):
         self.tab_pfc = QWidget(); self.layout_pfc = QVBoxLayout(self.tab_pfc)
         self.tab_atp = QWidget(); self.layout_atp = QVBoxLayout(self.tab_atp)
 
+        # === НОВАЯ ВКЛАДКА ДЛЯ КАЛИБРОВКИ ===
+        self.tab_calibrate = QWidget()
+        self.layout_calibrate = QVBoxLayout(self.tab_calibrate)
+
+        # Кнопка запуска калибровки
+        self.btn_start_calibrate = QPushButton("Запустить калибровку")
+        self.btn_start_calibrate.setMinimumHeight(35)
+        self.btn_start_calibrate.setStyleSheet("background-color: #3498db; color: white; font-weight: bold;")
+
+        # Окно вывода логов прогресса
+        self.txt_calibrate_log = QTextEdit()
+        self.txt_calibrate_log.setReadOnly(True)  # Только для чтения
+        self.txt_calibrate_log.setStyleSheet("font-family: Consolas, Monaco, monospace; background-color: #2c3e50; color: #ecf0f1;")
+
+        self.layout_calibrate.addWidget(self.btn_start_calibrate)
+        self.layout_calibrate.addWidget(self.txt_calibrate_log)
+        # =====================================
+
         self.tabs.addTab(self.tab_trofs, "Популяции")
         self.tabs.addTab(self.tab_detrit, "Детрит")
         self.tabs.addTab(self.tab_pfc, "БЖУ")
         self.tabs.addTab(self.tab_atp, "АТФ")
+        self.tabs.addTab(self.tab_calibrate, "Калибровка") # Добавляем в виджет вкладок
 
         self.content_layout.addWidget(self.tabs, stretch=1)
         self.canvases = {"trofs": None, "detrit": None, "pfc": None, "atp": None}
