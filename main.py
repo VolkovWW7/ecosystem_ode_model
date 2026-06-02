@@ -95,8 +95,6 @@ class BioOxController:
                 f"Калибровка успешно завершена!\n\nРезультаты сохранены в файл:\n{filename}"
             )
             
-            # АВТОЗАГРУЗКА: Раз уж мы знаем точное имя файла, 
-            # мы можем автоматически применить новые параметры в интерфейс!
             if filename and os.path.exists(filename):
                 new_params = mathmodel.load_params_from_json(filename)
                 # Отбираем только те параметры, которые есть в виджетах GUI

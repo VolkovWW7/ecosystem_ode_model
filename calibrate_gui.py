@@ -243,8 +243,12 @@ def run_calibration_gui():
             opt_params[name] = val
         opt_params = mathmodel.update_dependent_params(opt_params)
         
-        filename = f"calibrated_params_RMSRE_{best_metrics['RMSRE']:.4f}.json"
-        mathmodel.save_params_to_json(opt_params, filename)
+        filename = (
+            f"calibrated_params_"
+            f"NRMSE_{best_metrics['NRMSE']:.4f}_"
+            f"RMSRE_{best_metrics['RMSRE']:.4f}_"
+            f"RMSE_{best_metrics['RMSE']:.4f}.json"
+        )
         
         return filename
     else:
