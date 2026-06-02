@@ -4,5 +4,6 @@ __pycache__
 *.pdf
 .venv/
 *.spec
-
-calibrated_params_RMSRE_0.5536.json
+build
+dist
+calibrated_params*.json
