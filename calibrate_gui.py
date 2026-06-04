@@ -249,6 +249,8 @@ def run_calibration_gui():
             f"RMSRE_{best_metrics['RMSRE']:.4f}_"
             f"RMSE_{best_metrics['RMSE']:.4f}.json"
         )
+
+        mathmodel.save_params_to_json(opt_params, filename)
         
         return filename
     else:
