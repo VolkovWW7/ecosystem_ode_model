@@ -7,3 +7,4 @@ __pycache__
 build
 dist
 calibrated_params*.json
+.github/agents/Ecosystem_Ode_Model.agent.md

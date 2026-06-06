@@ -102,7 +102,7 @@ class BioOxWindow(QMainWindow):
         self.params_widgets['total_time'] = self._create_spin(10000, 0, 1000000, 100)
         self.params_widgets['output_step'] = self._create_spin(10, 0.1, 1000, 1)
         self.form_time.addRow("Общее время:", self.params_widgets['total_time'])
-        self.form_time.addRow("Шаг вывода:", self.params_widgets['output_step'])
+        self.form_time.addRow("Шаг вывода грфика:", self.params_widgets['output_step'])
         self.group_time.setLayout(self.form_time)
         self.params_layout.addWidget(self.group_time)
 
@@ -117,29 +117,33 @@ class BioOxWindow(QMainWindow):
         self.tab_pfc = QWidget(); self.layout_pfc = QVBoxLayout(self.tab_pfc)
         self.tab_atp = QWidget(); self.layout_atp = QVBoxLayout(self.tab_atp)
 
-        # === НОВАЯ ВКЛАДКА ДЛЯ КАЛИБРОВКИ ===
+        # === ВКЛАДКА ДЛЯ КАЛИБРОВКИ ===
         self.tab_calibrate = QWidget()
         self.layout_calibrate = QVBoxLayout(self.tab_calibrate)
 
-        # Кнопка запуска калибровки
+        # 1. Кнопка запуска калибровки
         self.btn_start_calibrate = QPushButton("Запустить калибровку")
         self.btn_start_calibrate.setMinimumHeight(35)
         self.btn_start_calibrate.setStyleSheet("background-color: #3498db; color: white; font-weight: bold;")
-
-        # Окно вывода логов прогресса
-        self.txt_calibrate_log = QTextEdit()
-        self.txt_calibrate_log.setReadOnly(True)  # Только для чтения
-        self.txt_calibrate_log.setStyleSheet("font-family: Consolas, Monaco, monospace; background-color: #2c3e50; color: #ecf0f1;")
-
         self.layout_calibrate.addWidget(self.btn_start_calibrate)
+
+        # 2. Окно вывода логов прогресса (компактная консоль сверху)
+        self.txt_calibrate_log = QTextEdit()
+        self.txt_calibrate_log.setReadOnly(True)
+        self.txt_calibrate_log.setStyleSheet("font-family: Consolas, Monaco, monospace; background-color: #2c3e50; color: #ecf0f1;")
+        self.txt_calibrate_log.setMaximumHeight(180) # Ограничиваем высоту, чтобы не "съедать" место у графиков
         self.layout_calibrate.addWidget(self.txt_calibrate_log)
-        # =====================================
+
+        # 3. Контейнер для графика верификации (снизу, на всю ширину окна)
+        self.layout_validation_graph = QVBoxLayout()
+        self.layout_calibrate.addLayout(self.layout_validation_graph)
+        # ===================================================================
 
         self.tabs.addTab(self.tab_trofs, "Популяции")
         self.tabs.addTab(self.tab_detrit, "Детрит")
         self.tabs.addTab(self.tab_pfc, "БЖУ")
         self.tabs.addTab(self.tab_atp, "АТФ")
-        self.tabs.addTab(self.tab_calibrate, "Калибровка") # Добавляем в виджет вкладок
+        self.tabs.addTab(self.tab_calibrate, "Фиттинг") # Добавляем в виджет вкладок
 
         self.content_layout.addWidget(self.tabs, stretch=1)
         self.canvases = {"trofs": None, "detrit": None, "pfc": None, "atp": None}
@@ -238,3 +242,9 @@ class BioOxWindow(QMainWindow):
             gui_params = {k: new_params[k] for k in self.params_widgets.keys() if k in new_params}
             self.set_parameters(gui_params)
             QMessageBox.information(self, "Успех", f"Параметры загружены из {filepath}")
+
+    def display_validation_figure(self, fig):
+        """Очищает старый и выводит новый график соответствия экспериментальным данным."""
+        self.clear_layout(self.layout_validation_graph)
+        canvas = FigureCanvas(fig)
+        self.layout_validation_graph.addWidget(canvas)

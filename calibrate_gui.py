@@ -8,6 +8,7 @@ from scipy.optimize import differential_evolution
 import mathmodel
 import json
 import sys
+from matplotlib.figure import Figure
 
 # ==================== ЭКСПЕРИМЕНТАЛЬНЫЕ ДАННЫЕ ====================
 exp_carbon = [
@@ -256,6 +257,78 @@ def run_calibration_gui():
     else:
         print("Ошибка: Не удалось найти стабильное решение.")
         return None
+def graph_validation(p):
+    """
+    Строит графики верификации: сравнение финальных точек модели 
+    с экспериментальными данными из текущего модуля.
+    """
+    fig = Figure(figsize=(12, 5))
+    
+    # --- ЛЕВЫЙ ГРАФИК: СЕРИЯ ПО УГЛЕРОДУ ---
+    ax1 = fig.add_subplot(121)
+    p_c = p.copy()
+    p_c['N0'] = N0_FIXED_C_SERIES
+    p_c['total_time'] = 15000
+    p_c['output_step'] = 150
+    
+    # Строим плавную теоретическую кривую модели
+    c_vals = [row[0] for row in exp_carbon]
+    c_grid = np.linspace(min(c_vals), max(c_vals), 100)
+    x_mod_c, y_mod_c = [], []
+    
+    for c0 in c_grid:
+        p_c['C0'] = c0
+        sol = mathmodel.run_simulation(p_c, 'LSODA')
+        x_mod_c.append(np.clip(sol.y[0, -1], 0, 1))
+        y_mod_c.append(np.clip(sol.y[1, -1], 0, 1))
+        
+    ax1.plot(c_grid, x_mod_c, 'g-', lw=2, label='Модель: Автотрофы (X)')
+    ax1.plot(c_grid, y_mod_c, 'r-', lw=2, label='Модель: Гетеротрофы (Y)')
+    
+    # Наносим точки реального эксперимента (берем прямо из этого файла)
+    exp_c_arr = np.array(exp_carbon)
+    ax1.scatter(exp_c_arr[:, 0], exp_c_arr[:, 1], color='darkgreen', edgecolors='black', s=40, label='Эксп. точки X')
+    ax1.scatter(exp_c_arr[:, 0], exp_c_arr[:, 2], color='darkred', marker='x', s=50, lw=2, label='Эксп. точки Y')
+    
+    ax1.set_title('Серия по углероду (при фиксированном N0 = 0.15)')
+    ax1.set_xlabel('Начальный минеральный углерод (C0)')
+    ax1.set_ylabel('Концентрация в t = 15000')
+    ax1.grid(True)
+    ax1.legend()
+
+    # --- ПРАВЫЙ ГРАФИК: СЕРИЯ ПО АЗОТУ ---
+    ax2 = fig.add_subplot(122)
+    p_n = p.copy()
+    p_n['C0'] = C0_FIXED_N_SERIES
+    p_n['total_time'] = 15000
+    p_n['output_step'] = 150
+    
+    # Строим плавную теоретическую кривую модели
+    n_vals = [row[0] for row in exp_nitrogen]
+    n_grid = np.linspace(min(n_vals), max(n_vals), 100)
+    x_mod_n, y_mod_n = [], []
+    
+    for n0 in n_grid:
+        p_n['N0'] = n0
+        sol = mathmodel.run_simulation(p_n, 'LSODA')
+        x_mod_n.append(np.clip(sol.y[0, -1], 0, 1))
+        y_mod_n.append(np.clip(sol.y[1, -1], 0, 1))
+        
+    ax2.plot(n_grid, x_mod_n, 'g-', lw=2, label='Модель: Автотрофы (X)')
+    ax2.plot(n_grid, y_mod_n, 'r-', lw=2, label='Модель: Гетеротрофы (Y)')
+    
+    # Наносим точки реального эксперимента (берем прямо из этого файла)
+    exp_n_arr = np.array(exp_nitrogen)
+    ax2.scatter(exp_n_arr[:, 0], exp_n_arr[:, 1], color='darkgreen', edgecolors='black', s=40, label='Эксп. точки X')
+    ax2.scatter(exp_n_arr[:, 0], exp_n_arr[:, 2], color='darkred', marker='x', s=50, lw=2, label='Эксп. точки Y')
+    
+    ax2.set_title('Серия по азоту (при фиксированном C0 = 0.625)')
+    ax2.set_xlabel('Начальный минеральный азот (N0)')
+    ax2.set_ylabel('Концентрация в t = 15000')
+    ax2.grid(True)
+    ax2.legend()
+    
+    return fig
 
 if __name__ == "__main__":
     run_calibration_gui()

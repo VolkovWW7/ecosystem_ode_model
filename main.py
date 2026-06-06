@@ -65,8 +65,8 @@ class BioOxController:
             QMessageBox.warning(self.window, "Внимание", "Калибровка уже выполняется!")
             return
 
-        # Очищаем старое окно логов перед новым запуском
-        self.window.txt_calibrate_log.clear()
+        # перед новым запуском
+        #self.window.txt_calibrate_log.clear()
         self.window.btn_start_calibrate.setEnabled(False)
         self.window.btn_start_calibrate.setText("Идёт калибровка...")
 
@@ -101,6 +101,13 @@ class BioOxController:
                 gui_params = {k: new_params[k] for k in self.window.params_widgets.keys() if k in new_params}
                 self.window.set_parameters(gui_params)
                 self.window.txt_calibrate_log.append(f"\n[Система]: Новые калиброванные параметры автоматически загружены в поля ввода.")
+
+                # === Автоматическое построение графика верификации по итогам калибровки ===
+                full_params = mathmodel.get_default_params()
+                full_params.update(gui_params)
+                full_params = mathmodel.update_dependent_params(full_params)
+                val_fig = calibrate_gui.graph_validation(full_params)
+                self.window.display_validation_figure(val_fig)
         else:
             QMessageBox.critical(self.window, "Ошибка", "В процессе оптимизации произошла ошибка.")
 
@@ -124,7 +131,12 @@ class BioOxController:
                 "pfc": mathmodel.graph_PFC(solution),
                 "atp": mathmodel.graph_Ac(solution)
             }
+            #Вывод графиков модели
             self.window.display_figures(figs)
+
+            # === Обновление графика верификации при обычном расчете ===
+            val_fig = calibrate_gui.graph_validation(full_params)
+            self.window.display_validation_figure(val_fig)
 
         except Exception as e:
             QMessageBox.critical(self.window, "Ошибка", str(e))
