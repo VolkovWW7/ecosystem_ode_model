@@ -139,6 +139,8 @@ class BioOxWindow(QMainWindow):
         # 3. Контейнер для графика верификации (снизу, на всю ширину окна)
         self.layout_validation_graph = QVBoxLayout()
         self.layout_calibrate.addLayout(self.layout_validation_graph)
+
+        self.layout_calibrate.addStretch(1)
         # ===================================================================
 
         #== Вкладки в виджете ==
