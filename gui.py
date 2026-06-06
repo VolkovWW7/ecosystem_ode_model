@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QScrollArea, QGroupBox, QFormLayout, 
                              QDoubleSpinBox, QFrame, QFileDialog, QMessageBox,
-                             QTabWidget, QTextEdit) 
+                             QTabWidget, QTextEdit, QSizePolicy) 
 from PySide6.QtCore import Qt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import mathmodel
@@ -124,7 +124,7 @@ class BioOxWindow(QMainWindow):
         self.layout_calibrate = QVBoxLayout(self.tab_calibrate)
 
         # 1. Кнопка запуска калибровки
-        self.btn_start_calibrate = QPushButton("Запустить калибровку")
+        self.btn_start_calibrate = QPushButton("Запустить подбор значений по экспериментальным данным.")
         self.btn_start_calibrate.setMinimumHeight(35)
         self.btn_start_calibrate.setStyleSheet("background-color: #3498db; color: white; font-weight: bold;")
         self.layout_calibrate.addWidget(self.btn_start_calibrate)
@@ -138,9 +138,9 @@ class BioOxWindow(QMainWindow):
 
         # 3. Контейнер для графика верификации (снизу, на всю ширину окна)
         self.layout_validation_graph = QVBoxLayout()
-        self.layout_calibrate.addLayout(self.layout_validation_graph)
-
-        self.layout_calibrate.addStretch(1)
+        self.layout_calibrate.addLayout(self.layout_validation_graph,stretch=1)
+        self.layout_validation_graph.addWidget(QWidget())
+        #self.layout_calibrate.addStretch(1)
         # ===================================================================
 
         #== Вкладки в виджете ==
@@ -256,4 +256,8 @@ class BioOxWindow(QMainWindow):
         """Очищает старый и выводит новый график соответствия экспериментальным данным."""
         self.clear_layout(self.layout_validation_graph)
         canvas = FigureCanvas(fig)
-        self.layout_validation_graph.addWidget(canvas)
+        canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        fig.tight_layout()
+        self.layout_validation_graph.addWidget(canvas, stretch=1)
+        canvas.updateGeometry()
+        canvas.draw()

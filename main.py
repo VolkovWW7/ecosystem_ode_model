@@ -157,8 +157,12 @@ class BioOxController:
         if not base_path:
             return
 
-        import os
         base_name = os.path.splitext(base_path)[0]
+
+        # == 1. Сразу собираем АКТУАЛЬНЫЕ параметры из GUI для всего отчета ==
+        full_params = mathmodel.get_default_params()
+        full_params.update(self.window.get_all_parameters())
+        full_params = mathmodel.update_dependent_params(full_params)
 
         #== CSV ==
         csv_path = base_name + ".csv"
@@ -196,7 +200,7 @@ class BioOxController:
         fig_atp.savefig(f"{base_name}_atp.png", dpi=300, bbox_inches='tight')
         fig_atp.savefig(f"{base_name}_atp.svg", bbox_inches='tight')
 
-        # Сохраняем график минеральных веществ
+        # Сохраняем график минеральных веществ        
         fig_minerals = mathmodel.graph_minerals(self.last_solution, full_params)
         fig_minerals.savefig(f"{base_name}_minerals.png", dpi=300, bbox_inches='tight')
         fig_minerals.savefig(f"{base_name}_minerals.svg", bbox_inches='tight')
@@ -207,25 +211,25 @@ class BioOxController:
         fig_conservation.savefig(f"{base_name}_conservation.svg", bbox_inches='tight')
 
         # Строим текущий график верификации (из калибровки - фиттинга)
-        full_params = mathmodel.get_default_params()
-        full_params.update(self.window.get_all_parameters())
-        full_params = mathmodel.update_dependent_params(full_params)
         fig_val = calibrate_gui.graph_validation(full_params)
         fig_val.savefig(f"{base_name}_validation.png", dpi=300, bbox_inches='tight')
 
         # == JSON (текущие параметры) ==
         json_path = base_name + ".json"
-        full_params = mathmodel.get_default_params()
-        full_params.update(self.window.get_all_parameters())
-        full_params = mathmodel.update_dependent_params(full_params)
         mathmodel.save_params_to_json(full_params, json_path)
 
-        QMessageBox.information(self.window, "Отчёт готов","Графики успешно экспортированы в форматах PNG и SVG!",
-                                f"Сохранено:\n{csv_path}\n,\n{json_path}")
+        report_message = (
+            "Графики успешно экспортированы в форматах PNG и SVG!\n\n"
+            f"Сохранено:\n"
+            f"• Таблица данных: {os.path.basename(csv_path)}\n"
+            f"• Файл параметров: {os.path.basename(json_path)}\n"
+            f"• Изображения с префиксом: {os.path.basename(base_name)}_*.png/svg"
+        )
+        QMessageBox.information(self.window, "Отчёт готов", report_message)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     controller = BioOxController()
-    controller.window.show()
+    controller.window.showMaximized()
     sys.exit(app.exec())
  
