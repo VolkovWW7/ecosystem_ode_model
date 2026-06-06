@@ -126,6 +126,7 @@ class BioOxWindow(QMainWindow):
         self.tab_atp = QWidget(); self.layout_atp = QVBoxLayout(self.tab_atp)
         self.tab_minerals = QWidget(); self.layout_minerals = QVBoxLayout(self.tab_minerals)
         self.tab_conservation = QWidget(); self.layout_conservation = QVBoxLayout(self.tab_conservation)
+        self.tab_growth = QWidget(); self.layout_growth = QVBoxLayout(self.tab_growth)
 
         # === ВКЛАДКА ДЛЯ КАЛИБРОВКИ ===
         self.tab_calibrate = QWidget()
@@ -153,6 +154,7 @@ class BioOxWindow(QMainWindow):
 
         #== Вкладки в виджете ==
         self.tabs.addTab(self.tab_trofs, "Популяции")
+        self.tabs.addTab(self.tab_growth, "Прирост X")
         self.tabs.addTab(self.tab_detrit, "Детрит")
         self.tabs.addTab(self.tab_pfc, "БЖУ")
         self.tabs.addTab(self.tab_atp, "АТФ")
@@ -221,6 +223,7 @@ class BioOxWindow(QMainWindow):
     def display_figures(self, figs):
         layouts = {
             "trofs": self.layout_trofs,
+            "growth": self.layout_growth,
             "detrit": self.layout_detrit,
             "pfc": self.layout_pfc,
             "atp": self.layout_atp,
@@ -274,3 +277,5 @@ class BioOxWindow(QMainWindow):
         self.layout_validation_graph.addWidget(canvas, stretch=1)
         canvas.updateGeometry()
         canvas.draw()
+    
+    

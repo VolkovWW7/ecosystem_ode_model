@@ -258,6 +258,66 @@ def graph_conservation(sol, params):
     
     fig.tight_layout()
     return fig
+
+def graph_autotroph_growth(sol, params):
+    """Строит график удельной скорости роста (Ph_c) и абсолютного прироста автотрофов во времени."""
+    fig = Figure(figsize=(10, 5))
+    ax1 = fig.add_subplot(111)
+    
+    # Восстанавливаем Ph_c для каждой точки времени из решения sol
+    ph_c_vals = []
+    absolute_growth = []
+    
+    p = params.copy()
+    
+    for i in range(len(sol.t)):
+        t_curr = sol.t[i]
+        x_curr = sol.y[:, i]
+        X, Y, Dcl, Dps, P, F, Ch, Ac = x_curr
+        
+        # Защита от отрицательных значений, как в функции sys
+        X = max(0.0, X)
+        Dcl = max(0.0, Dcl)
+        Dps = max(0.0, Dps)
+        P = max(0.0, P)
+        F = max(0.0, F)
+        Ch = max(0.0, Ch)
+        
+        C = max(1e-9, p['C0'] - (p['gXC']*(X + Dcl) + p['gYC']*(Y + Dps) + p['gPC']*P + p['gFC']*F + p['gChC']*Ch))
+        N = max(1e-9, p['N0'] - (p['gXN']*(X + Dcl) + p['gYN']*(Y + Dps) + p['gPN']*P))
+        
+        f_C = C / (p['Kc'] + C)
+        f_N = N / (p['Kn'] + N + p['Ki'] * N**4)
+        
+        if p.get('kinetic_model', 'mitscherlich') == 'liebig':
+            Ph_c = p['Vx_c'] * min(f_C, f_N)
+        else:
+            Ph_c = p['Vx_c'] * f_C * f_N
+            
+        ph_c_vals.append(Ph_c)
+        absolute_growth.append(Ph_c * X)
+
+    # Строим абсолютный прирост (Ph_c * X)
+    ax1.plot(sol.t, absolute_growth, 'g-', lw=2, label='Абсолютный прирост ($dX_{growth}/dt = \Phi_c \cdot X$)')
+    ax1.set_xlabel('Время (t)')
+    ax1.set_ylabel('Скорость прироста', color='g')
+    ax1.tick_params(axis='y', labelcolor='g')
+    ax1.grid(True)
+    
+    # Создаем вторую ось для удельной скорости роста (Ph_c)
+    ax2 = ax1.twinx()
+    ax2.plot(sol.t, ph_c_vals, 'b--', lw=1.5, label='Удельная скорость роcта ($\Phi_c$)')
+    ax2.set_ylabel('Удельная скорость', color='b')
+    ax2.tick_params(axis='y', labelcolor='b')
+    
+    ax1.set_title('Динамика кинетики роста автотрофных микроорганизмов')
+    
+    # Объединяем легенды двух осей в одну
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+    
+    return fig
     
     # --- ФУНКЦИИ ДЛЯ РАБОТЫ С JSON И ОТЧЁТАМИ ---
 def save_params_to_json(params, filepath):

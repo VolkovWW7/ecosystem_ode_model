@@ -134,6 +134,7 @@ class BioOxController:
             #== Формируем графики для отправки в GUI (внутри run_calculation) ==
             figs = {
                 "trofs": mathmodel.graph_Trofs(solution),
+                "growth": mathmodel.graph_autotroph_growth(solution, full_params),
                 "detrit": mathmodel.graph_Detrit(solution),
                 "pfc": mathmodel.graph_PFC(solution),
                 "atp": mathmodel.graph_Ac(solution),
@@ -197,6 +198,11 @@ class BioOxController:
         # Сохраняем динамику биомассы
         fig_dynamics.savefig(f"{base_name}_biomass.png", dpi=300, bbox_inches='tight')
         fig_dynamics.savefig(f"{base_name}_biomass.svg", bbox_inches='tight')
+
+        # Сохраняем график прироста автотрофов
+        fig_growth = mathmodel.graph_autotroph_growth(self.last_solution, full_params)
+        fig_growth.savefig(f"{base_name}_growth.png", dpi=300, bbox_inches='tight')
+        fig_growth.savefig(f"{base_name}_growth.svg", bbox_inches='tight')
         
         # Сохраняем БЖУ
         fig_pfc.savefig(f"{base_name}_biochemical.png", dpi=300, bbox_inches='tight')
