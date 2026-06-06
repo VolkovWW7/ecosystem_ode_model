@@ -91,7 +91,7 @@ stop_flag = None
 best_metrics = {"RMSRE": 1e10, "RMSE": 1e10, "NRMSE": 1e10}
 
 
-def objective(params_list, metric_type='nrmse'):
+def objective(params_list, metric_type='nrmse', kinetic_model='mitscherlich'):
     """
     metric_type может быть: 'rmsre', 'rmse', 'nrmse'
     """
@@ -102,6 +102,8 @@ def objective(params_list, metric_type='nrmse'):
     eval_count += 1
     
     p = mathmodel.get_default_params()
+    p['kinetic_model'] = kinetic_model  # ИСПРАВЛЕНИЕ: Передаем тип кинетики в модель
+    
     for name, val in zip(param_bounds.keys(), params_list):
         p[name] = val
     
@@ -182,14 +184,14 @@ def objective(params_list, metric_type='nrmse'):
         
     return current_target_value
 
-def run_calibration_gui():
+def run_calibration_gui(kinetic_model='mitscherlich'):
     global stop_flag, best_error, eval_count
     
     bounds = list(param_bounds.values())
     param_names = list(param_bounds.keys())
     
     print("="*60)
-    print("ЗАПУСК МНОГОСТУПЕНЧАТОЙ КАЛИБРОВКИ МОДЕЛИ")
+    print(f"ЗАПУСК МНОГОСТУПЕНЧАТОЙ КАЛИБРОВКИ ДЛЯ МОДЕЛИ: {kinetic_model.upper()}")
     print("="*60)
     
     def callback_func(xk, convergence):
@@ -206,7 +208,7 @@ def run_calibration_gui():
     
     result_stage1 = differential_evolution(
         objective, bounds,
-        args=('nrmse',),  # Передаем выбор метрики в objective
+        args=('nrmse', kinetic_model),  # передаем kinetic_model в args
         maxiter=25,       # Небольшое число итераций для грубого поиска
         popsize=10,
         seed=42, workers=1, disp=False,
@@ -234,11 +236,9 @@ def run_calibration_gui():
         narrowed_bounds.append((low, high))
         print(f" Сужены границы {name}: [{low:.4f} ... {high:.4f}]")
 
-    # Для Ступени 2 мы можем использовать либо повторный DE с узкими границами,
-    # либо быстрый градиентный метод "L-BFGS-B" от лучшей точки
     result_stage2 = differential_evolution(
         objective, narrowed_bounds,
-        args=('rmsre',),  # Теперь заставляем минимизировать строго относительную ошибку
+        args=('rmsre', kinetic_model),  # передаем kinetic_model в args
         maxiter=25,
         popsize=10,
         polish=True,      # Включаем финальную математическую полировку
@@ -263,6 +263,8 @@ def run_calibration_gui():
             
         # Формируем итоговый словарь параметров
         opt_params = mathmodel.get_default_params()
+        opt_params['kinetic_model'] = kinetic_model  #сохраняем выбранную модель в файл конфигурации
+        
         for name, val in zip(param_names, result_stage2.x):
             opt_params[name] = val
         opt_params = mathmodel.update_dependent_params(opt_params)
@@ -280,6 +282,7 @@ def run_calibration_gui():
     else:
         print("Ошибка: Не удалось найти стабильное решение.")
         return None
+
 def graph_validation(p):
     """
     Строит графики верификации: сравнение финальных точек модели 

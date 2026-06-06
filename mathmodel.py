@@ -10,6 +10,7 @@ import json
 def get_default_params():
     """Возвращает базовый словарь параметров из спецификации модели."""
     p = {
+        'kinetic_model': 'mitscherlich', # По умолчанию мультипликативная
         # Автотрофы
         'Vx_c': 13.19696,    # было 10.0
         'Kc': 0.815067,      # было 0.3
@@ -79,8 +80,18 @@ def sys(t, x, p):
     C = max(1e-9, p['C0'] - (p['gXC']*(X + Dcl) + p['gYC']*(Y + Dps) + p['gPC']*P + p['gFC']*F + p['gChC']*Ch))
     N = max(1e-9, p['N0'] - (p['gXN']*(X + Dcl) + p['gYN']*(Y + Dps) + p['gPN']*P))
 
-    Ph_c = p['Vx_c'] * C * N / ((p['Kc'] + C) * (p['Kn'] + N + p['Ki'] * N**4))
-    mX_c = p['Mxx'] * (1 + C*N + p['Ki'] * N**4) / (1 + p['Ax'] * C * N)
+    #Ph_c = p['Vx_c'] * C * N / ((p['Kc'] + C) * (p['Kn'] + N + p['Ki'] * N**4)) #модель митчерлиха
+    # Вычисляем отдельные компоненты насыщения для Углерода и Азота
+    f_C = C / (p['Kc'] + C)
+    f_N = N / (p['Kn'] + N + p['Ki'] * N**4)
+
+    # Переключение логики: Митчерлих (умножение) или Либих (минимум)
+    if p.get('kinetic_model', 'mitscherlich') == 'liebig':
+        Ph_c = p['Vx_c'] * min(f_C, f_N)
+    else:
+        Ph_c = p['Vx_c'] * f_C * f_N
+    
+    mX_c = p['Mxx'] * (1 + C*N + p['Ki'] * N**4) / (1 + p['Ax'] * C * N) #смертность
 
     v_atp = Ac * (2*(1 - Ac) - 0.1) / ((1 - Ac) + 0.1)
     atp_val = max(0.0, v_atp)

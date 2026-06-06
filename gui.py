@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QScrollArea, QGroupBox, QFormLayout, 
                              QDoubleSpinBox, QFrame, QFileDialog, QMessageBox,
-                             QTabWidget, QTextEdit, QSizePolicy) 
+                             QTabWidget, QTextEdit, QSizePolicy,QComboBox, QLabel)
 from PySide6.QtCore import Qt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import mathmodel
@@ -24,11 +24,19 @@ class BioOxWindow(QMainWindow):
         self.btn_run.setMinimumHeight(40)
         self.btn_run.setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold;")
         
+        self.lbl_model = QLabel("Модель:")
+        self.combo_model = QComboBox()
+        self.combo_model.addItems(["Митчерлих (Мультипликативная)", "Либих (Закон минимума)"])
+        self.combo_model.setMinimumHeight(30)
+        self.combo_model.setStyleSheet("font-weight: bold; padding: 3px;")
+
         self.btn_import = QPushButton("Импорт JSON")
         self.btn_export = QPushButton("Экспорт JSON")
         self.btn_report = QPushButton("Создать отчет")
 
         self.top_panel.addWidget(self.btn_run)
+        self.top_panel.addWidget(self.lbl_model)
+        self.top_panel.addWidget(self.combo_model)
         self.top_panel.addWidget(self.btn_import)
         self.top_panel.addWidget(self.btn_export)
         self.top_panel.addStretch()
@@ -148,9 +156,9 @@ class BioOxWindow(QMainWindow):
         self.tabs.addTab(self.tab_detrit, "Детрит")
         self.tabs.addTab(self.tab_pfc, "БЖУ")
         self.tabs.addTab(self.tab_atp, "АТФ")
-        self.tabs.addTab(self.tab_calibrate, "Фиттинг")
         self.tabs.addTab(self.tab_minerals, "Минеральные вещества")
         self.tabs.addTab(self.tab_conservation, "Закон сохранения")
+        self.tabs.addTab(self.tab_calibrate, "Фиттинг")
 
         self.content_layout.addWidget(self.tabs, stretch=1)
         self.canvases = {"trofs": None, "detrit": None, "pfc": None, "atp": None}
@@ -226,12 +234,17 @@ class BioOxWindow(QMainWindow):
             self.canvases[key] = canvas
 
     def get_all_parameters(self):
-        return {key: spin.value() for key, spin in self.params_widgets.items()}
+        params = {key: spin.value() for key, spin in self.params_widgets.items()}
+        params['kinetic_model'] = 'mitscherlich' if self.combo_model.currentIndex() == 0 else 'liebig'
+        return params
 
     def set_parameters(self, params_dict):
         for key, spin in self.params_widgets.items():
             if key in params_dict:
                 spin.setValue(params_dict[key])
+            if 'kinetic_model' in params_dict: 
+                idx = 0 if params_dict['kinetic_model'] == 'mitscherlich' else 1
+                self.combo_model.setCurrentIndex(idx)
 
     def export_params(self):
         filepath, _ = QFileDialog.getSaveFileName(self, "Сохранить параметры", "", "JSON (*.json)")

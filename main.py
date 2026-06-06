@@ -22,7 +22,11 @@ class LogRedirector:
 # Поток для фонового выполнения калибровки
 class CalibrationWorker(QThread):
     log_signal = Signal(str)
-    finished_signal = Signal(bool, str)  # <-- Поменяли тут
+    finished_signal = Signal(bool, str)  
+
+    def __init__(self, kinetic_model):
+            super().__init__()
+            self.kinetic_model = kinetic_model # Сохраняем выбранный тип уравнений
 
     def run(self):
         old_stdout = sys.stdout
@@ -30,7 +34,7 @@ class CalibrationWorker(QThread):
         
         try:
             # Вызов функции теперь возвращает имя файла (или None)
-            saved_file = calibrate_gui.run_calibration_gui()
+            saved_file = calibrate_gui.run_calibration_gui(self.kinetic_model)
             
             if saved_file:
                 self.finished_signal.emit(True, saved_file)
@@ -69,9 +73,11 @@ class BioOxController:
         #self.window.txt_calibrate_log.clear()
         self.window.btn_start_calibrate.setEnabled(False)
         self.window.btn_start_calibrate.setText("Идёт калибровка...")
+        # Извлекаем выбранную пользователем модель из GUI параметров
+        current_model = self.window.get_all_parameters()['kinetic_model']
 
         # Создаем и настраиваем рабочий поток
-        self.calibration_thread = CalibrationWorker()
+        self.calibration_thread = CalibrationWorker(current_model)
         self.calibration_thread.log_signal.connect(self.append_log)
         self.calibration_thread.finished_signal.connect(self.calibration_finished)
         
