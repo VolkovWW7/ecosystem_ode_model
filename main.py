@@ -161,7 +161,17 @@ class BioOxController:
         csv_path = base_name + ".csv"
         t = self.last_solution.t
         y = self.last_solution.y
-        header = "time,X,Y,Dcl,Dps,P,F,Ch,Ac"
+        header = (
+            "Time,"
+            "Autotrophs_X,"
+            "Heterotrophs_Y,"
+            "Detritus_cl,"
+            "Detritus_ps,"
+            "Proteins_P,"
+            "Lipids_F,"
+            "Carbohydrates_Ch,"
+            "ATP_Ac"
+        )
         data = np.column_stack((t, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7]))
         np.savetxt(csv_path, data, delimiter=",", header=header, comments="")
 
