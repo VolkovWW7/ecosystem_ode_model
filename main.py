@@ -157,7 +157,7 @@ class BioOxController:
         import os
         base_name = os.path.splitext(base_path)[0]
 
-        # CSV
+        #== CSV ==
         csv_path = base_name + ".csv"
         t = self.last_solution.t
         y = self.last_solution.y
@@ -165,19 +165,40 @@ class BioOxController:
         data = np.column_stack((t, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7]))
         np.savetxt(csv_path, data, delimiter=",", header=header, comments="")
 
-        # PDF
-        pdf_path = base_name + ".pdf"
-        mathmodel.save_report_pdf(self.last_solution, pdf_path)
+        #==Экспорт графиков в PNG (высокое качество) и SVG (вектор)==
+        # Генерируем фигуры через функции вашего mathmodel.py
+        fig_dynamics = mathmodel.graph_dynamics(self.last_solution) # если функции так называются
+        fig_pfc = mathmodel.graph_PFC(self.last_solution)
+        fig_atp = mathmodel.graph_Ac(self.last_solution)
+        
+        # Сохраняем динамику биомассы
+        fig_dynamics.savefig(f"{base_name}_biomass.png", dpi=300, bbox_inches='tight')
+        fig_dynamics.savefig(f"{base_name}_biomass.svg", bbox_inches='tight')
+        
+        # Сохраняем БЖУ
+        fig_pfc.savefig(f"{base_name}_biochemical.png", dpi=300, bbox_inches='tight')
+        fig_pfc.savefig(f"{base_name}_biochemical.svg", bbox_inches='tight')
+        
+        # Сохраняем АТФ
+        fig_atp.savefig(f"{base_name}_atp.png", dpi=300, bbox_inches='tight')
+        fig_atp.savefig(f"{base_name}_atp.svg", bbox_inches='tight')
 
-        # JSON (текущие параметры)
+        # И также строим текущий график верификации (из калибровки)
+        full_params = mathmodel.get_default_params()
+        full_params.update(self.window.get_all_parameters())
+        full_params = mathmodel.update_dependent_params(full_params)
+        fig_val = calibrate_gui.graph_validation(full_params)
+        fig_val.savefig(f"{base_name}_validation.png", dpi=300, bbox_inches='tight')
+
+        # == JSON (текущие параметры) ==
         json_path = base_name + ".json"
         full_params = mathmodel.get_default_params()
         full_params.update(self.window.get_all_parameters())
         full_params = mathmodel.update_dependent_params(full_params)
         mathmodel.save_params_to_json(full_params, json_path)
 
-        QMessageBox.information(self.window, "Отчёт готов",
-                                f"Сохранено:\n{csv_path}\n{pdf_path}\n{json_path}")
+        QMessageBox.information(self.window, "Отчёт готов","Графики успешно экспортированы в форматах PNG и SVG!",
+                                f"Сохранено:\n{csv_path}\n,\n{json_path}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

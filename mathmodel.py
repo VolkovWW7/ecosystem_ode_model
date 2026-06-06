@@ -3,7 +3,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import json
 
 # --- МАТЕМАТИЧЕСКАЯ МОДЕЛЬ ---
@@ -166,9 +165,3 @@ def load_params_from_json(filepath):
     params = update_dependent_params(params)
     return params
 
-def save_report_pdf(solution, pdf_path):
-    with PdfPages(pdf_path) as pdf:
-        fig1 = graph_Trofs(solution); pdf.savefig(fig1); plt.close(fig1)
-        fig2 = graph_Detrit(solution); pdf.savefig(fig2); plt.close(fig2)
-        fig3 = graph_PFC(solution); pdf.savefig(fig3); plt.close(fig3)
-        fig4 = graph_Ac(solution); pdf.savefig(fig4); plt.close(fig4)
