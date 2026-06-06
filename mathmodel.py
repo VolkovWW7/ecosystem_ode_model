@@ -150,7 +150,101 @@ def graph_Ac(sol):
     _setup_ax(ax, 'Внутриклеточная концентрация АТФ')
     return fig
 
-# --- ФУНКЦИИ ДЛЯ РАБОТЫ С JSON И ОТЧЁТАМИ ---
+def graph_minerals(sol, params):
+    """График динамики минеральных веществ (Углерод и Азот) на раздельных панелях"""
+    fig = Figure(figsize=(8, 6))
+    ax1 = fig.add_subplot(211)  # Верхний график для Углерода
+    ax2 = fig.add_subplot(212)  # Нижний график для Азота
+    
+    # Получаем стехиометрические коэффициенты
+    gXC = params.get('gXC', 1.0)
+    gYC = params.get('gYC', 1.0)
+    gXN = params.get('gXN', 0.15)
+    gYN = params.get('gYN', 0.15)
+    gPC = params.get('gPC', 0.77)
+    gFC = params.get('gFC', 1.0)
+    gChC = params.get('gChC', 1.0)
+    gPN = params.get('gPN', 0.23)
+    
+    C0 = params.get('C0', 0.11)
+    N0 = params.get('N0', 0.15)
+    
+    X, Y = sol.y[0], sol.y[1]
+    Dcl, Dps = sol.y[2], sol.y[3]
+    P, F, Ch = sol.y[4], sol.y[5], sol.y[6]
+    
+    # Считаем свободные минеральные формы строго по уравнениям системы
+    C_min = C0 - (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
+    N_min = N0 - (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
+    
+    # 1. Панель Углерода
+    ax1.plot(sol.t, C_min, 'b-', lw=2, label='Минеральный Углерод (C)')
+    ax1.set_ylabel('Концентрация C')
+    ax1.set_title('Свободный минеральный Углерод в среде')
+    ax1.grid(True)
+    ax1.legend()
+    
+    # 2. Панель Азота
+    ax2.plot(sol.t, N_min, 'm-', lw=2, label='Минеральный Азот (N)')
+    ax2.set_xlabel('Время (t)')
+    ax2.set_ylabel('Концентрация N')
+    ax2.set_title('Свободный минеральный Азот в среде')
+    ax2.grid(True)
+    ax2.legend()
+    
+    fig.tight_layout() # Авто-выравнивание отступов, чтобы заголовки не налезали на оси
+    return fig
+
+def graph_conservation(sol, params):
+    """График проверки закона сохранения вещества (Материальный баланс)"""
+    fig = Figure(figsize=(8, 6))
+    ax1 = fig.add_subplot(211)  # Верхний график для общего Углерода
+    ax2 = fig.add_subplot(212)  # Нижний график для общего Азота
+    
+    gXC = params.get('gXC', 1.0)
+    gYC = params.get('gYC', 1.0)
+    gXN = params.get('gXN', 0.15)
+    gYN = params.get('gYN', 0.15)
+    gPC = params.get('gPC', 0.77)
+    gFC = params.get('gFC', 1.0)
+    gChC = params.get('gChC', 1.0)
+    gPN = params.get('gPN', 0.23)
+    
+    C0 = params.get('C0', 0.11)
+    N0 = params.get('N0', 0.15)
+    
+    X, Y = sol.y[0], sol.y[1]
+    Dcl, Dps = sol.y[2], sol.y[3]
+    P, F, Ch = sol.y[4], sol.y[5], sol.y[6]
+    
+    C_min = C0 - (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
+    N_min = N0 - (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
+    
+    # Суммируем ВСЕ фракции веществ в системе
+    Total_C = C_min + (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
+    Total_N = N_min + (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
+    
+    # 1. Баланс Углерода
+    ax1.plot(sol.t, Total_C, 'b--', lw=2.5, label='Общий Углерод системы')
+    ax1.set_ylabel('Сумма по всем пулам')
+    ax1.set_title(f'Материальный баланс Углерода (Постоянная линия на уровне C0={C0})')
+    ax1.set_ylim(C0 * 0.9, C0 * 1.1)  # Рамки видимости для проверки стабильности линии
+    ax1.grid(True)
+    ax1.legend()
+    
+    # 2. Баланс Азота
+    ax2.plot(sol.t, Total_N, 'm--', lw=2.5, label='Общий Азот системы')
+    ax2.set_xlabel('Время (t)')
+    ax2.set_ylabel('Сумма по всем пулам')
+    ax2.set_title(f'Материальный баланс Азота (Постоянная линия на уровне N0={N0})')
+    ax2.set_ylim(N0 * 0.9, N0 * 1.1)
+    ax2.grid(True)
+    ax2.legend()
+    
+    fig.tight_layout()
+    return fig
+    
+    # --- ФУНКЦИИ ДЛЯ РАБОТЫ С JSON И ОТЧЁТАМИ ---
 def save_params_to_json(params, filepath):
     to_save = {k: v for k, v in params.items() 
                if k not in ['bXCh', 'bYCh', 'gXC', 'gXN', 'gYC', 'gYN']}
@@ -164,4 +258,3 @@ def load_params_from_json(filepath):
     params.update(loaded)
     params = update_dependent_params(params)
     return params
-

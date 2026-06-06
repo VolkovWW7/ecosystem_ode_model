@@ -125,11 +125,14 @@ class BioOxController:
             solution = mathmodel.run_simulation(full_params,"LSODA")
             self.last_solution = solution
 
+            #== Формируем графики для отправки в GUI (внутри run_calculation) ==
             figs = {
                 "trofs": mathmodel.graph_Trofs(solution),
                 "detrit": mathmodel.graph_Detrit(solution),
                 "pfc": mathmodel.graph_PFC(solution),
-                "atp": mathmodel.graph_Ac(solution)
+                "atp": mathmodel.graph_Ac(solution),
+                'minerals': mathmodel.graph_minerals(solution, full_params),     
+                'conservation': mathmodel.graph_conservation(solution, full_params)
             }
             #Вывод графиков модели
             self.window.display_figures(figs)
@@ -177,7 +180,7 @@ class BioOxController:
 
         #==Экспорт графиков в PNG (высокое качество) и SVG (вектор)==
         # Генерируем фигуры через функции вашего mathmodel.py
-        fig_dynamics = mathmodel.graph_dynamics(self.last_solution) # если функции так называются
+        fig_dynamics = mathmodel.graph_Trofs(self.last_solution) # если функции так называются
         fig_pfc = mathmodel.graph_PFC(self.last_solution)
         fig_atp = mathmodel.graph_Ac(self.last_solution)
         
@@ -193,7 +196,17 @@ class BioOxController:
         fig_atp.savefig(f"{base_name}_atp.png", dpi=300, bbox_inches='tight')
         fig_atp.savefig(f"{base_name}_atp.svg", bbox_inches='tight')
 
-        # И также строим текущий график верификации (из калибровки)
+        # Сохраняем график минеральных веществ
+        fig_minerals = mathmodel.graph_minerals(self.last_solution, full_params)
+        fig_minerals.savefig(f"{base_name}_minerals.png", dpi=300, bbox_inches='tight')
+        fig_minerals.savefig(f"{base_name}_minerals.svg", bbox_inches='tight')
+
+        # Сохраняем график закона сохранения вещества
+        fig_conservation = mathmodel.graph_conservation(self.last_solution, full_params)
+        fig_conservation.savefig(f"{base_name}_conservation.png", dpi=300, bbox_inches='tight')
+        fig_conservation.savefig(f"{base_name}_conservation.svg", bbox_inches='tight')
+
+        # Строим текущий график верификации (из калибровки - фиттинга)
         full_params = mathmodel.get_default_params()
         full_params.update(self.window.get_all_parameters())
         full_params = mathmodel.update_dependent_params(full_params)

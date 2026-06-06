@@ -116,6 +116,8 @@ class BioOxWindow(QMainWindow):
         self.tab_detrit = QWidget(); self.layout_detrit = QVBoxLayout(self.tab_detrit)
         self.tab_pfc = QWidget(); self.layout_pfc = QVBoxLayout(self.tab_pfc)
         self.tab_atp = QWidget(); self.layout_atp = QVBoxLayout(self.tab_atp)
+        self.tab_minerals = QWidget(); self.layout_minerals = QVBoxLayout(self.tab_minerals)
+        self.tab_conservation = QWidget(); self.layout_conservation = QVBoxLayout(self.tab_conservation)
 
         # === ВКЛАДКА ДЛЯ КАЛИБРОВКИ ===
         self.tab_calibrate = QWidget()
@@ -139,11 +141,14 @@ class BioOxWindow(QMainWindow):
         self.layout_calibrate.addLayout(self.layout_validation_graph)
         # ===================================================================
 
+        #== Вкладки в виджете ==
         self.tabs.addTab(self.tab_trofs, "Популяции")
         self.tabs.addTab(self.tab_detrit, "Детрит")
         self.tabs.addTab(self.tab_pfc, "БЖУ")
         self.tabs.addTab(self.tab_atp, "АТФ")
-        self.tabs.addTab(self.tab_calibrate, "Фиттинг") # Добавляем в виджет вкладок
+        self.tabs.addTab(self.tab_calibrate, "Фиттинг")
+        self.tabs.addTab(self.tab_minerals, "Минеральные вещества")
+        self.tabs.addTab(self.tab_conservation, "Закон сохранения")
 
         self.content_layout.addWidget(self.tabs, stretch=1)
         self.canvases = {"trofs": None, "detrit": None, "pfc": None, "atp": None}
@@ -208,7 +213,9 @@ class BioOxWindow(QMainWindow):
             "trofs": self.layout_trofs,
             "detrit": self.layout_detrit,
             "pfc": self.layout_pfc,
-            "atp": self.layout_atp
+            "atp": self.layout_atp,
+            'minerals': self.layout_minerals,       
+            'conservation': self.layout_conservation 
         }
         for key, fig in figs.items():
             self.clear_layout(layouts[key])

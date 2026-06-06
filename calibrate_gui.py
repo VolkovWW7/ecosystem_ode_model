@@ -278,14 +278,17 @@ def graph_validation(p):
     
     for c0 in c_grid:
         p_c['C0'] = c0
-        sol = mathmodel.run_simulation(p_c, 'LSODA')
+        # ЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обновляем внутренние зависимости от нового C0
+        p_c = mathmodel.update_dependent_params(p_c)
+        # ЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: метод 'LSODA' задан строго по имени, как в objective
+        sol = mathmodel.run_simulation(p_c, method='LSODA')
         x_mod_c.append(np.clip(sol.y[0, -1], 0, 1))
         y_mod_c.append(np.clip(sol.y[1, -1], 0, 1))
         
     ax1.plot(c_grid, x_mod_c, 'g-', lw=2, label='Модель: Автотрофы (X)')
     ax1.plot(c_grid, y_mod_c, 'r-', lw=2, label='Модель: Гетеротрофы (Y)')
     
-    # Наносим точки реального эксперимента (берем прямо из этого файла)
+    # Наносим точки реального эксперимента
     exp_c_arr = np.array(exp_carbon)
     ax1.scatter(exp_c_arr[:, 0], exp_c_arr[:, 1], color='darkgreen', edgecolors='black', s=40, label='Эксп. точки X')
     ax1.scatter(exp_c_arr[:, 0], exp_c_arr[:, 2], color='darkred', marker='x', s=50, lw=2, label='Эксп. точки Y')
@@ -310,14 +313,17 @@ def graph_validation(p):
     
     for n0 in n_grid:
         p_n['N0'] = n0
-        sol = mathmodel.run_simulation(p_n, 'LSODA')
+        # ЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обновляем внутренние зависимости от нового N0
+        p_n = mathmodel.update_dependent_params(p_n)
+        # ЛОГИЧЕСКОЕ ИСПРАВЛЕНИЕ: метод 'LSODA' задан строго по имени, как в objective
+        sol = mathmodel.run_simulation(p_n, method='LSODA')
         x_mod_n.append(np.clip(sol.y[0, -1], 0, 1))
         y_mod_n.append(np.clip(sol.y[1, -1], 0, 1))
         
     ax2.plot(n_grid, x_mod_n, 'g-', lw=2, label='Модель: Автотрофы (X)')
     ax2.plot(n_grid, y_mod_n, 'r-', lw=2, label='Модель: Гетеротрофы (Y)')
     
-    # Наносим точки реального эксперимента (берем прямо из этого файла)
+    # Наносим точки реального эксперимента
     exp_n_arr = np.array(exp_nitrogen)
     ax2.scatter(exp_n_arr[:, 0], exp_n_arr[:, 1], color='darkgreen', edgecolors='black', s=40, label='Эксп. точки X')
     ax2.scatter(exp_n_arr[:, 0], exp_n_arr[:, 2], color='darkred', marker='x', s=50, lw=2, label='Эксп. точки Y')
