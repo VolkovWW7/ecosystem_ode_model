@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #Математическая модель микробиоты автотрофов и гететрофов
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -80,7 +82,6 @@ def sys(t, x, p):
     C = max(1e-9, p['C0'] - (p['gXC']*(X + Dcl) + p['gYC']*(Y + Dps) + p['gPC']*P + p['gFC']*F + p['gChC']*Ch))
     N = max(1e-9, p['N0'] - (p['gXN']*(X + Dcl) + p['gYN']*(Y + Dps) + p['gPN']*P))
 
-    #Ph_c = p['Vx_c'] * C * N / ((p['Kc'] + C) * (p['Kn'] + N + p['Ki'] * N**4)) #модель митчерлиха
     # Вычисляем отдельные компоненты насыщения для Углерода и Азота
     f_C = C / (p['Kc'] + C)
     f_N = N / (p['Kn'] + N + p['Ki'] * N**4)
@@ -114,11 +115,19 @@ def sys(t, x, p):
     dx[7] = 10 * (5*atp_val*(p['aP']*gP_c + p['aF']*gF_c + p['aCh']*gCh_c)*Y/(0.0001+Y) - f_c - p['k_d']*Ac/(p['eps2']+Ac))
     return dx
 
-def run_simulation(p,method):
+def run_simulation(p, method):
     p0_val = (p['Dcl0'] + p['Dps0']) / 6
     x0 = [p['X0'], p['Y0'], p['Dcl0'], p['Dps0'], p0_val, p0_val, p0_val, p['Ac0']]
     t_span = (0, p['total_time'])
+    
+    # ИСПРАВЛЕНИЕ БАГА С ШАГОМ: безопасное построение сетки t_eval
     t_eval = np.arange(0, p['total_time'] + p['output_step'], p['output_step'])
+    t_eval = t_eval[t_eval <= p['total_time']]  # Отсекаем хвост, выходящий за границы t_span
+    
+    # Добавляем финальную точку, если из-за некратного шага её там нет (с учетом погрешности float)
+    if len(t_eval) == 0 or (p['total_time'] - t_eval[-1] > 1e-9):
+        t_eval = np.append(t_eval, p['total_time'])
+        
     return solve_ivp(sys, t_span, x0, args=(p,), method=method, t_eval=t_eval)
 
 # --- ФУНКЦИИ ГРАФИКОВ ---
@@ -162,12 +171,11 @@ def graph_Ac(sol):
     return fig
 
 def graph_minerals(sol, params):
-    """График динамики минеральных веществ (Углерод и Азот) на раздельных панелях"""
+    """График динамики минеральных веществ (Углерод и Азот) на раздельных панели"""
     fig = Figure(figsize=(8, 6))
     ax1 = fig.add_subplot(211)  # Верхний график для Углерода
     ax2 = fig.add_subplot(212)  # Нижний график для Азота
     
-    # Получаем стехиометрические коэффициенты
     gXC = params.get('gXC', 1.0)
     gYC = params.get('gYC', 1.0)
     gXN = params.get('gXN', 0.15)
@@ -184,7 +192,6 @@ def graph_minerals(sol, params):
     Dcl, Dps = sol.y[2], sol.y[3]
     P, F, Ch = sol.y[4], sol.y[5], sol.y[6]
     
-    # Считаем свободные минеральные формы строго по уравнениям системы
     C_min = C0 - (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
     N_min = N0 - (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
     
@@ -202,8 +209,6 @@ def graph_minerals(sol, params):
     ax2.set_title('Свободный минеральный Азот в среде')
     ax2.grid(True)
     ax2.legend()
-    
-    fig.tight_layout() # Авто-выравнивание отступов, чтобы заголовки не налезали на оси
     return fig
 
 def graph_conservation(sol, params):
@@ -231,7 +236,6 @@ def graph_conservation(sol, params):
     C_min = C0 - (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
     N_min = N0 - (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
     
-    # Суммируем ВСЕ фракции веществ в системе
     Total_C = C_min + (gXC*(X + Dcl) + gYC*(Y + Dps) + gPC*P + gFC*F + gChC*Ch)
     Total_N = N_min + (gXN*(X + Dcl) + gYN*(Y + Dps) + gPN*P)
     
@@ -239,7 +243,7 @@ def graph_conservation(sol, params):
     ax1.plot(sol.t, Total_C, 'b--', lw=2.5, label='Общий Углерод системы')
     ax1.set_ylabel('Сумма по всем пулам')
     ax1.set_title(f'Материальный баланс Углерода (Постоянная линия на уровне C0={C0})')
-    ax1.set_ylim(C0 * 0.9, C0 * 1.1)  # Рамки видимости для проверки стабильности линии
+    ax1.set_ylim(C0 * 0.9, C0 * 1.1)
     ax1.grid(True)
     ax1.legend()
     
