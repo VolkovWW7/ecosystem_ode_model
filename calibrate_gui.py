@@ -133,7 +133,12 @@ def objective(params_list, metric_type='nrmse', kinetic_model='mitscherlich'):
             Y_mod = np.clip(sol.y[1, -1], 0, 1)
         except Exception:
             return 1e10
-            
+
+        # ЖЕСТКИЙ ШТРАФ ЗА ВЫМИРАНИЕ (Защита от читерства алгоритма)
+        # Если модель уводит популяцию в ноль, возвращаем огромную ошибку
+        if X_mod < 1e-4 or Y_mod < 1e-4:
+            return 1e10
+
         sq_abs_errors.extend([(X_mod - x_exp)**2, (Y_mod - y_exp)**2])
         sq_rel_errors.extend([((X_mod - x_exp)/(x_exp + eps))**2, ((Y_mod - y_exp)/(y_exp + eps))**2])
     
@@ -150,6 +155,11 @@ def objective(params_list, metric_type='nrmse', kinetic_model='mitscherlich'):
         except Exception:
             return 1e10
             
+        # ЖЕСТКИЙ ШТРАФ ЗА ВЫМИРАНИЕ (Защита от читерства алгоритма)
+        # Если модель уводит популяцию в ноль, возвращаем огромную ошибку
+        if X_mod < 1e-4 or Y_mod < 1e-4:
+            return 1e10
+
         sq_abs_errors.extend([(X_mod - x_exp)**2, (Y_mod - y_exp)**2])
         sq_rel_errors.extend([((X_mod - x_exp)/(x_exp + eps))**2, ((Y_mod - y_exp)/(y_exp + eps))**2])
     
@@ -187,6 +197,20 @@ def objective(params_list, metric_type='nrmse', kinetic_model='mitscherlich'):
 def run_calibration_gui(kinetic_model='mitscherlich'):
     global stop_flag, best_error, eval_count
     
+    # 1. Исправляем и очищаем входящую переменную от tuple
+    if isinstance(kinetic_model, tuple):
+        # Если прилетел кортеж, берем его первый элемент (обычно это строка)
+        kinetic_model = kinetic_model[0]
+    
+    # 2. Приводим к стандартной строке без пробелов в нижнем регистре
+    kinetic_model_str = str(kinetic_model).strip().lower()
+    
+    # 3. Принудительно сопоставляем с внутренними идентификаторами моделей ядра
+    if "liebig" in kinetic_model_str or "либих" in kinetic_model_str:
+        model_label = "Liebig"
+    else:
+        model_label = "Mitscherlich"
+
     bounds = list(param_bounds.values())
     param_names = list(param_bounds.keys())
     
@@ -270,7 +294,7 @@ def run_calibration_gui(kinetic_model='mitscherlich'):
         opt_params = mathmodel.update_dependent_params(opt_params)
         
         filename = (
-            f"{kinetic_model}",
+            f"{model_label}",
             f"NRMSE_{best_metrics['NRMSE']:.4f}_"
             f"RMSRE_{best_metrics['RMSRE']:.4f}_"
             f"RMSE_{best_metrics['RMSE']:.4f}.json"
