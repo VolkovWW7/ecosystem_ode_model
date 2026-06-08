@@ -8,4 +8,4 @@ build
 dist
 calibrated_params*.json
 .github/agents/Ecosystem_Ode_Model.agent.md
-_fitted_params_NRMSE_0.1912_RMSRE_0.5381_RMSE_0.0029.json
+*_fitted_params_NRMSE_0.1912_RMSRE_0.5381_RMSE_0.0029.json
