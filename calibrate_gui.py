@@ -270,7 +270,7 @@ def run_calibration_gui(kinetic_model='mitscherlich'):
         opt_params = mathmodel.update_dependent_params(opt_params)
         
         filename = (
-            f"_fitted_params_"
+            f"{kinetic_model}",
             f"NRMSE_{best_metrics['NRMSE']:.4f}_"
             f"RMSRE_{best_metrics['RMSRE']:.4f}_"
             f"RMSE_{best_metrics['RMSE']:.4f}.json"
@@ -294,8 +294,8 @@ def graph_validation(p):
     ax1 = fig.add_subplot(121)
     p_c = p.copy()
     p_c['N0'] = N0_FIXED_C_SERIES
-    p_c['total_time'] = 15000
-    p_c['output_step'] = 150
+    p_c['total_time'] = p.get('total_time', 500)
+    p_c['output_step'] = p_c['total_time'] / 100
     
     # Строим плавную теоретическую кривую модели
     c_vals = [row[0] for row in exp_carbon]
@@ -328,8 +328,8 @@ def graph_validation(p):
     ax2 = fig.add_subplot(122)
     p_n = p.copy()
     p_n['C0'] = C0_FIXED_N_SERIES
-    p_n['total_time'] = 15000
-    p_n['output_step'] = 150
+    p_n['total_time'] = p.get('total_time', 500)
+    p_n['output_step'] = p_n['total_time'] / 100
     
     # Строим плавную теоретическую кривую модели
     n_vals = [row[0] for row in exp_nitrogen]
