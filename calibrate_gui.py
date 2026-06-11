@@ -294,7 +294,7 @@ def run_calibration_gui(kinetic_model='mitscherlich'):
         opt_params = mathmodel.update_dependent_params(opt_params)
         
         filename = (
-            f"{model_label}",
+            f"{model_label}_"
             f"NRMSE_{best_metrics['NRMSE']:.4f}_"
             f"RMSRE_{best_metrics['RMSRE']:.4f}_"
             f"RMSE_{best_metrics['RMSE']:.4f}.json"
@@ -318,7 +318,7 @@ def graph_validation(p):
     ax1 = fig.add_subplot(121)
     p_c = p.copy()
     p_c['N0'] = N0_FIXED_C_SERIES
-    p_c['total_time'] = p.get('total_time', 500)
+    p_c['total_time'] = p.get('total_time')
     p_c['output_step'] = p_c['total_time'] / 100
     
     # Строим плавную теоретическую кривую модели
