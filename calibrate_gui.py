@@ -323,6 +323,16 @@ def run_calibration_gui(kinetic_model='mitscherlich'):
             opt_params[name] = val
         opt_params = mathmodel.update_dependent_params(opt_params)
         
+        final_metrics = evaluate_metrics(opt_params)
+        if final_metrics:
+            print("\nПересчитанные метрики для финальных параметров:")
+            print(f"  NRMSE = {final_metrics['NRMSE']:.6f}")
+            print(f"  RMSRE = {final_metrics['RMSRE']:.6f}")
+            print(f"  RMSE  = {final_metrics['RMSE']:.6f}")
+            best_metrics=final_metrics
+        else:
+            print("Не удалось пересчитать метрики для финальных параметров.")
+
         filename = (
             f"{model_label}_"
             f"NRMSE_{best_metrics['NRMSE']:.4f}_"
@@ -332,6 +342,7 @@ def run_calibration_gui(kinetic_model='mitscherlich'):
 
         mathmodel.save_params_to_json(opt_params, filename)
         
+
         return filename
     else:
         print("Ошибка: Не удалось найти стабильное решение.")
@@ -413,6 +424,69 @@ def graph_validation(p):
     ax2.legend()
     fig.tight_layout()
     return fig
+
+def evaluate_metrics(params):
+    """
+    Вычисляет метрики ошибок для заданного набора параметров
+    по экспериментальным данным (углеродная и азотная серии).
+    Возвращает словарь с NRMSE, RMSRE, RMSE.
+    """
+    # Копируем параметры, чтобы не изменять оригинал
+    p = params.copy()
+    p['total_time'] = 15000
+    p['output_step'] = 150
+    p = mathmodel.update_dependent_params(p)
+
+    eps = 1e-9
+    sq_rel_errors = []
+    sq_abs_errors = []
+    x_exp_all = []
+    y_exp_all = []
+
+    # Углеродная серия
+    p['N0'] = N0_FIXED_C_SERIES
+    for C0, x_exp, y_exp in exp_carbon:
+        p['C0'] = C0
+        try:
+            sol = mathmodel.run_simulation(p, method='LSODA')
+            X_mod = np.clip(sol.y[0, -1], 0, 1)
+            Y_mod = np.clip(sol.y[1, -1], 0, 1)
+        except Exception:
+            return None
+        x_exp_all.append(x_exp)
+        y_exp_all.append(y_exp)
+        sq_abs_errors.extend([(X_mod - x_exp)**2, (Y_mod - y_exp)**2])
+        sq_rel_errors.extend([((X_mod - x_exp)/(x_exp + eps))**2, ((Y_mod - y_exp)/(y_exp + eps))**2])
+
+    # Азотная серия
+    p['C0'] = C0_FIXED_N_SERIES
+    for N0, x_exp, y_exp in exp_nitrogen:
+        p['N0'] = N0
+        try:
+            sol = mathmodel.run_simulation(p, method='LSODA')
+            X_mod = np.clip(sol.y[0, -1], 0, 1)
+            Y_mod = np.clip(sol.y[1, -1], 0, 1)
+        except Exception:
+            return None
+        x_exp_all.append(x_exp)
+        y_exp_all.append(y_exp)
+        sq_abs_errors.extend([(X_mod - x_exp)**2, (Y_mod - y_exp)**2])
+        sq_rel_errors.extend([((X_mod - x_exp)/(x_exp + eps))**2, ((Y_mod - y_exp)/(y_exp + eps))**2])
+
+    rmse = np.sqrt(np.mean(sq_abs_errors))
+    rmsre = np.sqrt(np.mean(sq_rel_errors))
+
+    max_exp = max(max(x_exp_all), max(y_exp_all))
+    min_exp = min(min(x_exp_all), min(y_exp_all))
+    range_exp = (max_exp - min_exp) if (max_exp - min_exp) > 0 else 1.0
+    nrmse = rmse / range_exp
+
+    return {
+        'NRMSE': nrmse,
+        'RMSRE': rmsre,
+        'RMSE': rmse
+    }
+
 
 if __name__ == "__main__":
     run_calibration_gui()

@@ -148,6 +148,20 @@ class BioOxController:
             val_fig = calibrate_gui.graph_validation(full_params)
             self.window.display_validation_figure(val_fig)
 
+            try:
+                metrics = calibrate_gui.evaluate_metrics(full_params)
+                if metrics:
+                    log_text = (
+                        f"\n[Метрики качества для текущих параметров]:\n"
+                        f"  NRMSE = {metrics['NRMSE']:.6f}\n"
+                        f"  RMSRE = {metrics['RMSRE']:.6f}\n"
+                        f"  RMSE  = {metrics['RMSE']:.6f}"
+                    )
+                    self.window.txt_calibrate_log.append(log_text)
+            except Exception as e:
+                print(f"Ошибка при вычислении метрик: {e}")
+                self.window.txt_calibrate_log.append(f"Ошибка при вычислении метрик: {e}")
+
         except Exception as e:
             QMessageBox.critical(self.window, "Ошибка", str(e))
         finally:
