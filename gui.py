@@ -133,7 +133,7 @@ class BioOxWindow(QMainWindow):
         self.layout_calibrate = QVBoxLayout(self.tab_calibrate)
 
         # 1. Кнопка запуска калибровки
-        self.btn_start_calibrate = QPushButton("Запустить подбор значений по экспериментальным данным.")
+        self.btn_start_calibrate = QPushButton("Запустить подбор значений по экспериментальным данным")
         self.btn_start_calibrate.setMinimumHeight(35)
         self.btn_start_calibrate.setStyleSheet("background-color: #3498db; color: white; font-weight: bold;")
         self.layout_calibrate.addWidget(self.btn_start_calibrate)

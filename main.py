@@ -92,7 +92,7 @@ class BioOxController:
     @Slot(bool, str)  # <-- Принимает два аргумента
     def calibration_finished(self, success, filename):
         self.window.btn_start_calibrate.setEnabled(True)
-        self.window.btn_start_calibrate.setText("Запустить калибровку")
+        self.window.btn_start_calibrate.setText("Запустить подбор значений по экспериментальным данным")
         
         if success:
             QMessageBox.information(
